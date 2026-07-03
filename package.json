@@ -1,0 +1,64 @@
+{
+  "name": "whatsapp_multicast",
+  "version": "1.0.0",
+  "description": "WhatsApp Multicast - Backend Node.js",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "build:frontend": "npm --prefix Whatsapp_Multicast run build",
+    "start:desktop": "electron .",
+    "dist:win": "npm run build:frontend && electron-builder --win nsis"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.3",
+    "whatsapp-web.js": "^1.34.7"
+  },
+  "allowScripts": {
+    "puppeteer@24.38.0": true,
+    "electron@37.10.3": true,
+    "electron-winstaller@5.4.0": true
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.u136865.senialamientos",
+    "productName": "Senialamientos",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "server.js",
+      "package.json",
+      "node_modules/**/*",
+      "Whatsapp_Multicast/dist/whatsapp-multicast/**/*"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.js"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

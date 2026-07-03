@@ -1,0 +1,45 @@
+<div class="app-container">
+
+  <!-- Toolbar principal -->
+  <mat-toolbar class="main-toolbar">
+    <button mat-icon-button (click)="sidenav.toggle()" [disabled]="!isReady">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <span class="toolbar-title">WhatsApp Multicast</span>
+
+    <!-- Indicador de estado de WhatsApp -->
+    <div class="wa-status-chip" [ngClass]="'status-' + waStatus">
+      <div class="dot"></div>
+      <mat-icon style="font-size:16px;width:16px;height:16px">whatsapp</mat-icon>
+      <span>{{ statusLabels[waStatus] }}</span>
+    </div>
+  </mat-toolbar>
+
+  <!-- Sidenav + contenido -->
+  <mat-sidenav-container class="sidenav-container">
+
+    <mat-sidenav #sidenav mode="side" opened class="sidenav">
+      <div class="sidenav-header">
+        <mat-icon style="color:#25d366;font-size:36px;width:36px;height:36px">whatsapp</mat-icon>
+        <span>Multicast</span>
+      </div>
+
+      <mat-nav-list>
+        <mat-list-item routerLink="/senalamentos" routerLinkActive="active">
+          <mat-icon matListItemIcon>sports_soccer</mat-icon>
+          <span matListItemTitle>Señalamientos</span>
+        </mat-list-item>
+        <mat-list-item routerLink="/categorias" routerLinkActive="active">
+          <mat-icon matListItemIcon>category</mat-icon>
+          <span matListItemTitle>Categorías</span>
+        </mat-list-item>
+      </mat-nav-list>
+    </mat-sidenav>
+
+    <mat-sidenav-content>
+      <router-outlet></router-outlet>
+    </mat-sidenav-content>
+
+  </mat-sidenav-container>
+
+</div>

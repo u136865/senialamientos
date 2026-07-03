@@ -1,0 +1,285 @@
+<div class="content-area">
+
+  <!-- Cabecera -->
+  <div class="page-header">
+    <h1>
+      <mat-icon>sports_soccer</mat-icon>
+      Señalamientos
+    </h1>
+    <button mat-flat-button color="primary" (click)="openSemanaDialog()">
+      <mat-icon>add</mat-icon>
+      Nueva semana
+    </button>
+  </div>
+
+  <!-- Spinner -->
+  <div *ngIf="loading" style="text-align:center;padding:48px">
+    <mat-spinner diameter="48" style="margin:0 auto"></mat-spinner>
+    <p style="margin-top:16px;color:#546e7a">Cargando señalamientos...</p>
+  </div>
+
+  <!-- Estado vacío -->
+  <div *ngIf="!loading && semanasFuturas.length === 0 && semanasPasadas.length === 0" class="empty-state">
+    <mat-icon>calendar_month</mat-icon>
+    <h3>Sin semanas configuradas</h3>
+    <p>Crea la primera semana con el botón "Nueva semana".</p>
+  </div>
+
+  <!-- Lista de semanas como acordeón -->
+  <div *ngIf="!loading && (semanasFuturas.length > 0 || semanasPasadas.length > 0)" class="semanas-container">
+
+    <!-- SEMANAS FUTURAS -->
+    <div *ngFor="let semana of semanasFuturas" class="semana-card" [class.expanded]="expandedSemana === semana.id">
+
+      <!-- Cabecera de semana -->
+      <div class="semana-header" (click)="toggleSemana(semana.id)">
+        <div class="semana-info">
+          <mat-icon class="semana-icon">calendar_week</mat-icon>
+          <div>
+            <span class="semana-label">{{ semana.label }}</span>
+            <span class="semana-count">
+              {{ (senalamentosBySemana[semana.id] || []).length }} señalamientos
+            </span>
+          </div>
+        </div>
+        <div class="semana-actions">
+          <button mat-icon-button 
+            (click)="notifySemana(semana, $event)"
+            [disabled]="!canNotifySemana(semana)"
+            matTooltip="Notificar todos los señalamientos de la semana">
+            <mat-icon>notifications</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="deleteSemana(semana, $event)"
+            matTooltip="Eliminar semana">
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+          <mat-icon class="expand-icon" [class.rotated]="expandedSemana === semana.id">
+            expand_more
+          </mat-icon>
+        </div>
+      </div>
+
+      <!-- Contenido de la semana -->
+      <div class="semana-content" *ngIf="expandedSemana === semana.id">
+
+        <!-- Sin señalamientos -->
+        <div *ngIf="(senalamentosBySemana[semana.id] || []).length === 0" class="no-senalamentos">
+          <mat-icon>sports_soccer</mat-icon>
+          <p>No hay señalamientos esta semana</p>
+        </div>
+
+        <!-- Tabla de señalamientos -->
+        <table *ngIf="(senalamentosBySemana[semana.id] || []).length > 0"
+          class="senalamentos-table" aria-label="Señalamientos">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Concentración</th>
+              <th>Sede</th>
+              <th>Rival</th>
+              <th>Categoría</th>
+              <th style="text-align:right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of senalamentosBySemana[semana.id]" class="senalamento-row">
+              <td>
+                <div class="fecha-badge">
+                  <mat-icon>event</mat-icon>
+                  {{ formatDate(s.fecha) }}
+                </div>
+              </td>
+              <td>
+                <div class="hora-badge">
+                  <mat-icon>schedule</mat-icon>
+                  {{ s.hora }}
+                </div>
+              </td>
+              <td>
+                <span *ngIf="s.horaConcentracion; else noData" class="hora-concentracion">
+                  <mat-icon>alarm</mat-icon>
+                  <span>{{ s.horaConcentracion }}</span>
+                </span>
+              </td>
+              <td>
+                <div *ngIf="s.sede; else noData" class="sede-cell">
+                  <mat-icon>stadium</mat-icon>
+                  <span>{{ s.sede }}</span>
+                </div>
+              </td>
+              <td>
+                <div *ngIf="s.rival; else noData" class="rival-cell">
+                  <mat-icon>groups</mat-icon>
+                  <span>{{ s.rival }}</span>
+                </div>
+              </td>
+              <td>
+                <div *ngIf="s.categoria; else noData" class="cat-chip">
+                  {{ s.categoria.categoria }}
+                  <span *ngIf="s.categoria.division"> {{ s.categoria.division }}</span>
+                  <span *ngIf="s.categoria.genero"> {{ s.categoria.genero }}</span>
+                </div>
+              </td>
+              <td style="text-align:right">
+                <button mat-icon-button color="accent" 
+                  (click)="notifySenalamento(s, $event)"
+                  [disabled]="!s.categoria?.grupoWhatsapp"
+                  matTooltip="Notificar a grupo WhatsApp">
+                  <mat-icon>send</mat-icon>
+                </button>
+                <button mat-icon-button color="primary" (click)="openSenalamentoDialog(semana, s)"
+                  matTooltip="Editar">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="deleteSenalamento(semana.id, s)"
+                  matTooltip="Eliminar">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Botón añadir señalamiento -->
+        <div class="add-senalamento-bar">
+          <button mat-stroked-button color="primary" (click)="openSenalamentoDialog(semana)">
+            <mat-icon>add</mat-icon>
+            Añadir señalamiento
+          </button>
+        </div>
+
+      </div><!-- /semana-content -->
+    </div><!-- /semana-card -->
+
+    <!-- SECCIÓN PASADOS (si hay semanas pasadas) -->
+    <div *ngIf="semanasPasadas.length > 0" class="pasados-section">
+
+      <!-- Cabecera colapsable de Pasados -->
+      <div class="pasados-header" (click)="expandedPasadas = !expandedPasadas">
+        <div class="pasados-info">
+          <mat-icon class="pasados-icon">history</mat-icon>
+          <div>
+            <span class="pasados-label">Pasados</span>
+            <span class="pasados-count">
+              {{ semanasPasadas.length }} semana(s)
+            </span>
+          </div>
+        </div>
+        <mat-icon class="expand-icon" [class.rotated]="expandedPasadas">
+          expand_more
+        </mat-icon>
+      </div>
+
+      <!-- Semanas pasadas (desplegables) -->
+      <div *ngIf="expandedPasadas" class="pasados-content">
+        <div *ngFor="let semana of semanasPasadas" class="semana-card" [class.expanded]="expandedSemana === semana.id">
+
+          <!-- Cabecera de semana pasada -->
+          <div class="semana-header" (click)="toggleSemana(semana.id)">
+            <div class="semana-info">
+              <mat-icon class="semana-icon">calendar_week</mat-icon>
+              <div>
+                <span class="semana-label">{{ semana.label }}</span>
+                <span class="semana-count">
+                  {{ (senalamentosBySemana[semana.id] || []).length }} señalamientos
+                </span>
+              </div>
+            </div>
+            <div class="semana-actions">
+              <button mat-icon-button color="warn" (click)="deleteSemana(semana, $event)"
+                matTooltip="Eliminar semana">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+              <mat-icon class="expand-icon" [class.rotated]="expandedSemana === semana.id">
+                expand_more
+              </mat-icon>
+            </div>
+          </div>
+
+          <!-- Contenido de la semana pasada -->
+          <div class="semana-content" *ngIf="expandedSemana === semana.id">
+
+            <!-- Sin señalamientos -->
+            <div *ngIf="(senalamentosBySemana[semana.id] || []).length === 0" class="no-senalamentos">
+              <mat-icon>sports_soccer</mat-icon>
+              <p>No hay señalamientos esta semana</p>
+            </div>
+
+            <!-- Tabla de señalamientos -->
+            <table *ngIf="(senalamentosBySemana[semana.id] || []).length > 0"
+              class="senalamentos-table" aria-label="Señalamientos">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>Concentración</th>
+                  <th>Sede</th>
+                  <th>Rival</th>
+                  <th>Categoría</th>
+                  <th style="text-align:right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of senalamentosBySemana[semana.id]" class="senalamento-row">
+                  <td>
+                    <div class="fecha-badge">
+                      <mat-icon>event</mat-icon>
+                      {{ formatDate(s.fecha) }}
+                    </div>
+                  </td>
+                  <td>
+                    <div class="hora-badge">
+                      <mat-icon>schedule</mat-icon>
+                      {{ s.hora }}
+                    </div>
+                  </td>
+                  <td>
+                    <span *ngIf="s.horaConcentracion; else noData" class="hora-concentracion">
+                      <mat-icon>alarm</mat-icon>
+                      <span>{{ s.horaConcentracion }}</span>
+                    </span>
+                  </td>
+                  <td>
+                    <div *ngIf="s.sede; else noData" class="sede-cell">
+                      <mat-icon>stadium</mat-icon>
+                      <span>{{ s.sede }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div *ngIf="s.rival; else noData" class="rival-cell">
+                      <mat-icon>groups</mat-icon>
+                      <span>{{ s.rival }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div *ngIf="s.categoria; else noData" class="cat-chip">
+                      {{ s.categoria.categoria }}
+                      <span *ngIf="s.categoria.division"> {{ s.categoria.division }}</span>
+                      <span *ngIf="s.categoria.genero"> {{ s.categoria.genero }}</span>
+                    </div>
+                  </td>
+                  <td style="text-align:right">
+                    <button mat-icon-button color="primary" (click)="openSenalamentoDialog(semana, s)"
+                      matTooltip="Editar">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="deleteSenalamento(semana.id, s)"
+                      matTooltip="Eliminar">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+          </div><!-- /semana-content -->
+        </div><!-- /semana-card de pasadas -->
+      </div><!-- /pasados-content -->
+
+    </div><!-- /pasados-section -->
+
+  </div>
+</div>
+
+<ng-template #noData><span class="no-data">—</span></ng-template>

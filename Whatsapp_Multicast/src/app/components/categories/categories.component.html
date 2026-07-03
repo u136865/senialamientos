@@ -1,0 +1,122 @@
+<div class="content-area">
+
+  <!-- Cabecera de página -->
+  <div class="page-header">
+    <h1>
+      <mat-icon>category</mat-icon>
+      Categorías
+    </h1>
+    <button mat-flat-button color="primary" (click)="openCreate()">
+      <mat-icon>add</mat-icon>
+      Nueva Categoría
+    </button>
+  </div>
+
+  <!-- Barra de búsqueda -->
+  <mat-form-field appearance="outline" class="search-bar">
+    <mat-label>Buscar categorías</mat-label>
+    <input matInput (keyup)="applyFilter($event)" placeholder="Categoría, división, género..." />
+    <mat-icon matSuffix>search</mat-icon>
+  </mat-form-field>
+
+  <!-- Spinner de carga -->
+  <div *ngIf="loading" style="text-align:center;padding:40px">
+    <mat-spinner diameter="48" style="margin:0 auto"></mat-spinner>
+    <p style="margin-top:16px;color:#546e7a">Cargando categorías...</p>
+  </div>
+
+  <!-- Tabla -->
+  <mat-card class="table-card" *ngIf="!loading">
+    <mat-card-content style="padding:0">
+
+      <table mat-table [dataSource]="dataSource" matSort style="width:100%">
+
+        <!-- Categoría -->
+        <ng-container matColumnDef="categoria">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Categoría</th>
+          <td mat-cell *matCellDef="let row">
+            <strong>{{ row.categoria }}</strong>
+          </td>
+        </ng-container>
+
+        <!-- División -->
+        <ng-container matColumnDef="division">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>División</th>
+          <td mat-cell *matCellDef="let row">
+            <span *ngIf="row.division; else emptyCell">{{ row.division }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Género -->
+        <ng-container matColumnDef="genero">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Género</th>
+          <td mat-cell *matCellDef="let row">
+            <span *ngIf="row.genero; else emptyCell">{{ row.genero }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Grupo WhatsApp -->
+        <ng-container matColumnDef="grupoWhatsapp">
+          <th mat-header-cell *matHeaderCellDef>Grupo WhatsApp</th>
+          <td mat-cell *matCellDef="let row">
+            <span *ngIf="row.grupoWhatsapp; else noGroupCell" class="group-chip">
+              <mat-icon>groups</mat-icon>
+              {{ row.grupoWhatsapp.name }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Acciones -->
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef style="text-align:right;padding-right:16px">Acciones</th>
+          <td mat-cell *matCellDef="let row" style="text-align:right">
+            <div class="action-btns">
+              <button mat-icon-button color="primary" (click)="openEdit(row)" matTooltip="Editar">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="confirmDelete(row)" matTooltip="Eliminar">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+        <!-- Fila vacía al filtrar -->
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+            <div class="empty-state">
+              <mat-icon>search_off</mat-icon>
+              <h3>Sin resultados</h3>
+              <p>No hay categorías que coincidan con la búsqueda.</p>
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Estado vacío (sin datos) -->
+      <div *ngIf="dataSource.data.length === 0 && !loading" class="empty-state">
+        <mat-icon>inbox</mat-icon>
+        <h3>No hay categorías</h3>
+        <p>Crea la primera categoría con el botón "Nueva Categoría".</p>
+      </div>
+
+      <mat-paginator
+        [pageSizeOptions]="[10, 25, 50]"
+        pageSize="10"
+        showFirstLastButtons>
+      </mat-paginator>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<!-- Template para celdas vacías -->
+<ng-template #emptyCell>
+  <span class="no-group">—</span>
+</ng-template>
+
+<ng-template #noGroupCell>
+  <span class="no-group">Sin grupo</span>
+</ng-template>

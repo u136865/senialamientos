@@ -1,0 +1,25 @@
+# Dependencias
+node_modules/
+Whatsapp_Multicast/node_modules/
+
+# Builds y artefactos
+dist/
+Whatsapp_Multicast/dist/
+*.log
+
+# Datos sensibles de runtime
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Persistencia local (no subir datos de negocio)
+data/*.json
+!data/.gitkeep
+
+# Datos de Electron en desarrollo
+*.tmp
+*.temp
+
+# Entorno
+.env
+.env.*
+!.env.example
