@@ -59,10 +59,12 @@ Comando:
 
 npm run dist:win
 
-Salida esperada:
+Salida esperada (en tu maquina local):
 
 - Instalador: [dist/Senialamientos-Setup-1.0.0.exe](dist/Senialamientos-Setup-1.0.0.exe)
 - App desempaquetada: [dist/win-unpacked](dist/win-unpacked)
+
+Nota: esos archivos no se suben al codigo fuente porque [dist](dist) esta ignorado por Git.
 
 ## Publicar una Release con .exe en GitHub
 
@@ -81,6 +83,13 @@ Este repo incluye workflow en [release.yml](.github/workflows/release.yml) que:
    git push origin v1.0.1
 
 2. GitHub Actions publicara automaticamente la Release v1.0.1.
+3. Descarga el ejecutable desde:
+
+   https://github.com/u136865/senialamientos/releases
+
+   o desde la ultima version publicada:
+
+   https://github.com/u136865/senialamientos/releases/latest
 
 ### Opcion 2: manual
 
