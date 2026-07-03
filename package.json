@@ -32,6 +32,7 @@
   "build": {
     "appId": "com.u136865.senialamientos",
     "productName": "Senialamientos",
+    "asar": false,
     "directories": {
       "output": "dist"
     },

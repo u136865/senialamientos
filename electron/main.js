@@ -1,11 +1,34 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, dialog } = require('electron');
 const { fork } = require('child_process');
 const http = require('http');
+const fs = require('fs');
+const net = require('net');
 const path = require('path');
 
-const SERVER_PORT = process.env.PORT || 3000;
+const BASE_PORT = Number(process.env.PORT || 3000);
 let mainWindow = null;
 let serverProcess = null;
+let serverPort = BASE_PORT;
+
+app.setName('Senialamientos');
+
+function writeDesktopLog(message) {
+  try {
+    const logDir = app.getPath('userData');
+    const logFile = path.join(logDir, 'desktop.log');
+    fs.mkdirSync(logDir, { recursive: true });
+    fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${message}\n`, 'utf-8');
+  } catch {
+    // Ignorar errores de logging para no romper el arranque.
+  }
+}
+
+function getAppBasePath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'app');
+  }
+  return app.getAppPath();
+}
 
 function waitForServer(url, timeoutMs = 45000) {
   return new Promise((resolve, reject) => {
@@ -30,25 +53,80 @@ function waitForServer(url, timeoutMs = 45000) {
   });
 }
 
-function startBackend() {
-  const appPath = app.getAppPath();
-  const backendEntry = path.join(appPath, 'server.js');
-  const frontendDist = path.join(appPath, 'Whatsapp_Multicast', 'dist', 'whatsapp-multicast');
+function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const tester = net.createServer();
+
+    tester.once('error', () => resolve(false));
+    tester.once('listening', () => {
+      tester.close(() => resolve(true));
+    });
+
+    tester.listen(port, '127.0.0.1');
+  });
+}
+
+async function resolvePort(preferredPort) {
+  if (await isPortAvailable(preferredPort)) return preferredPort;
+
+  for (let offset = 1; offset <= 20; offset += 1) {
+    const candidate = preferredPort + offset;
+    if (await isPortAvailable(candidate)) return candidate;
+  }
+
+  throw new Error(`No hay puertos disponibles desde ${preferredPort} hasta ${preferredPort + 20}`);
+}
+
+async function startBackend() {
+  const appBasePath = getAppBasePath();
+  const backendEntry = path.join(appBasePath, 'server.js');
+  const frontendDist = path.join(appBasePath, 'Whatsapp_Multicast', 'dist', 'whatsapp-multicast');
+  serverPort = await resolvePort(BASE_PORT);
+
+  if (!fs.existsSync(backendEntry)) {
+    throw new Error(`No se encontro backend: ${backendEntry}`);
+  }
+
+  writeDesktopLog(`[Electron] appBasePath=${appBasePath}`);
+  writeDesktopLog(`[Electron] backendEntry=${backendEntry}`);
+  writeDesktopLog(`[Electron] frontendDist=${frontendDist}`);
+  writeDesktopLog(`[Electron] serverPort=${serverPort}`);
 
   serverProcess = fork(backendEntry, [], {
+    cwd: appBasePath,
     env: {
       ...process.env,
-      PORT: String(SERVER_PORT),
+      PORT: String(serverPort),
       APP_DATA_DIR: app.getPath('userData'),
       FRONTEND_DIST: frontendDist,
       CORS_ORIGIN: '*'
     },
-    stdio: 'inherit'
+    stdio: 'pipe'
+  });
+
+  if (serverProcess.stdout) {
+    serverProcess.stdout.on('data', (chunk) => {
+      writeDesktopLog(`[backend][stdout] ${String(chunk).trim()}`);
+    });
+  }
+
+  if (serverProcess.stderr) {
+    serverProcess.stderr.on('data', (chunk) => {
+      writeDesktopLog(`[backend][stderr] ${String(chunk).trim()}`);
+    });
+  }
+
+  serverProcess.on('error', (err) => {
+    writeDesktopLog(`[Electron] Error iniciando backend: ${err.message}`);
   });
 
   serverProcess.on('exit', (code) => {
     if (!app.isQuitting) {
-      console.error('[Electron] El backend terminó inesperadamente. Código:', code);
+      writeDesktopLog(`[Electron] El backend termino inesperadamente. Codigo: ${code}`);
+      dialog.showErrorBox(
+        'Error de inicio',
+        `El backend se cerro inesperadamente (codigo ${code}).\n\nRevisa el log: ${path.join(app.getPath('userData'), 'desktop.log')}`
+      );
       app.quit();
     }
   });
@@ -67,17 +145,31 @@ async function createWindow() {
     }
   });
 
-  await waitForServer(`http://127.0.0.1:${SERVER_PORT}/api/whatsapp/status`);
-  await mainWindow.loadURL(`http://127.0.0.1:${SERVER_PORT}`);
+  await waitForServer(`http://127.0.0.1:${serverPort}/api/whatsapp/status`);
+  await mainWindow.loadURL(`http://127.0.0.1:${serverPort}`);
 }
 
 app.whenReady().then(async () => {
-  startBackend();
+  try {
+    await startBackend();
+  } catch (err) {
+    writeDesktopLog(`[Electron] Fallo startBackend: ${err.message}`);
+    dialog.showErrorBox(
+      'Error de inicio',
+      `No se pudo iniciar el backend.\n\n${err.message}\n\nLog: ${path.join(app.getPath('userData'), 'desktop.log')}`
+    );
+    app.quit();
+    return;
+  }
 
   try {
     await createWindow();
   } catch (err) {
-    console.error('[Electron] Error al iniciar:', err.message);
+    writeDesktopLog(`[Electron] Error al iniciar ventana: ${err.message}`);
+    dialog.showErrorBox(
+      'Error al iniciar la aplicacion',
+      `${err.message}\n\nRevisa el log: ${path.join(app.getPath('userData'), 'desktop.log')}`
+    );
     app.quit();
   }
 

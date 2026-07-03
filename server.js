@@ -6,11 +6,72 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
-const APP_DATA_DIR = process.env.APP_DATA_DIR ? path.resolve(process.env.APP_DATA_DIR) : null;
-const STORAGE_ROOT = APP_DATA_DIR || __dirname;
+const LEGACY_ROOT = __dirname;
+const DEFAULT_APPDATA_ROOT = path.join(
+  process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),
+  'Senialamientos'
+);
+const APP_DATA_DIR = process.env.APP_DATA_DIR
+  ? path.resolve(process.env.APP_DATA_DIR)
+  : DEFAULT_APPDATA_ROOT;
+const STORAGE_ROOT = APP_DATA_DIR;
 const FRONTEND_DIST = process.env.FRONTEND_DIST ? path.resolve(process.env.FRONTEND_DIST) : null;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:4200';
+
+function ensureDirExists(dirPath) {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+}
+
+function copyIfMissing(srcFile, destFile) {
+  if (!fs.existsSync(srcFile) || fs.existsSync(destFile)) return;
+  ensureDirExists(path.dirname(destFile));
+  fs.copyFileSync(srcFile, destFile);
+}
+
+function copyDirIfMissing(srcDir, destDir) {
+  if (!fs.existsSync(srcDir)) return;
+  ensureDirExists(destDir);
+
+  for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
+    const srcEntry = path.join(srcDir, entry.name);
+    const destEntry = path.join(destDir, entry.name);
+
+    if (entry.isDirectory()) {
+      copyDirIfMissing(srcEntry, destEntry);
+      continue;
+    }
+
+    copyIfMissing(srcEntry, destEntry);
+  }
+}
+
+function migrateLegacyDataToAppData() {
+  try {
+    ensureDirExists(STORAGE_ROOT);
+
+    const legacyDataDir = path.join(LEGACY_ROOT, 'data');
+    const targetDataDir = path.join(STORAGE_ROOT, 'data');
+    copyDirIfMissing(legacyDataDir, targetDataDir);
+
+    const legacyAuthDir = path.join(LEGACY_ROOT, '.wwebjs_auth');
+    const targetAuthDir = path.join(STORAGE_ROOT, '.wwebjs_auth');
+    copyDirIfMissing(legacyAuthDir, targetAuthDir);
+
+    const legacyCacheDir = path.join(LEGACY_ROOT, '.wwebjs_cache');
+    const targetCacheDir = path.join(STORAGE_ROOT, '.wwebjs_cache');
+    copyDirIfMissing(legacyCacheDir, targetCacheDir);
+
+    console.log('[Storage] Usando carpeta de datos:', STORAGE_ROOT);
+  } catch (err) {
+    console.error('[Storage] Error al migrar datos legacy:', err.message);
+  }
+}
+
+migrateLegacyDataToAppData();
 
 // Ruta a Chrome del sistema (fallback a puppeteer cache si no está el del sistema)
 const CHROME_PATHS = [
@@ -55,7 +116,7 @@ const readSenalamentos  = makeReader(SENALAMENTOS_FILE);
 const writeSenalamentos = makeWriter(SENALAMENTOS_FILE);
 
 function initFile(file) {
-  if (!fs.existsSync(file)) fs.writeFileSync(file, '[]');
+  if (!fs.existsSync(file)) fs.writeFileSync(file, '[]', 'utf-8');
 }
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -346,7 +407,7 @@ ${s.rival ? `🆚 *Rival:* ${s.rival}` : ''}`.trim();
 });
 
 if (FRONTEND_DIST && fs.existsSync(path.join(FRONTEND_DIST, 'index.html'))) {
-  app.get('*', (req, res, next) => {
+  app.use((req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
       return next();
     }
