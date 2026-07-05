@@ -34,6 +34,7 @@ import { SelectGroupDialogComponent } from './components/categories/select-group
 import { SenalamentosComponent } from './components/senalamentos/senalamentos.component';
 import { SemanaPickerDialogComponent } from './components/senalamentos/semana-picker-dialog/semana-picker-dialog.component';
 import { SenalamantoDialogComponent } from './components/senalamentos/senalamento-dialog/senalamento-dialog.component';
+import { RenotifyConfirmDialogComponent } from './components/senalamentos/renotify-confirm-dialog/renotify-confirm-dialog.component';
 import { QrDialogComponent } from './components/qr-dialog/qr-dialog.component';
 
 @NgModule({
@@ -45,7 +46,8 @@ import { QrDialogComponent } from './components/qr-dialog/qr-dialog.component';
     QrDialogComponent,
     SenalamentosComponent,
     SemanaPickerDialogComponent,
-    SenalamantoDialogComponent
+    SenalamantoDialogComponent,
+    RenotifyConfirmDialogComponent
   ],
   imports: [
     BrowserModule,

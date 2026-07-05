@@ -5,6 +5,13 @@ import { Semana, Senalamento } from '../models/senalamento.model';
 
 const API = '/api';
 
+export interface NotifyResponse {
+  success: boolean;
+  sentMessages: number;
+  notifiedIds?: string[];
+  notifiedAt?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SenalamentosService {
   constructor(private http: HttpClient) {}
@@ -40,8 +47,8 @@ export class SenalamentosService {
     return this.http.delete<{ success: boolean }>(`${API}/senalamentos/${id}`);
   }
 
-  notifySenalamentos(groupId: string, senalamentos: Senalamento[]): Observable<{ success: boolean; sentMessages: number }> {
-    return this.http.post<{ success: boolean; sentMessages: number }>(`${API}/whatsapp/notify`, {
+  notifySenalamentos(groupId: string, senalamentos: Senalamento[]): Observable<NotifyResponse> {
+    return this.http.post<NotifyResponse>(`${API}/whatsapp/notify`, {
       groupId,
       senalamentos
     });

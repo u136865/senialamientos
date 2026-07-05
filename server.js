@@ -332,7 +332,9 @@ app.post('/api/senalamentos', (req, res) => {
     horaConcentracion: horaConcentracion || '',
     sede: (sede || '').trim(),
     rival: (rival || '').trim(),
-    categoria: categoria || null
+    categoria: categoria || null,
+    notificado: false,
+    notificadoEn: null
   };
   const data = readSenalamentos();
   data.push(newItem);
@@ -371,8 +373,17 @@ app.post('/api/whatsapp/notify', async (req, res) => {
 
   try {
     const messages = [];
+    const notifiedIds = [];
+    const notifiedAt = new Date().toISOString();
     
     for (const s of senalamentos) {
+      const categoriaPartes = [
+        s.categoria?.categoria,
+        s.categoria?.division,
+        s.categoria?.genero
+      ].map(v => (v || '').trim()).filter(Boolean);
+      const categoriaTexto = categoriaPartes.length ? categoriaPartes.join(' ') : 'Sin categoría';
+
       // Parsear la fecha YYYY-MM-DD
       const fecha = new Date(s.fecha + 'T12:00:00');
       const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -385,22 +396,40 @@ app.post('/api/whatsapp/notify', async (req, res) => {
       const fechaFormato = `${diaSemana} ${dia} de ${mes}`;
       
       const message = `⚽ *SEÑALAMIENTO OFICIAL* ⚽
-🏃‍♂️ *Categoría:* ${s.categoria?.categoria || 'Sin categoría'}
+🏃‍♂️ *Categoría:* ${categoriaTexto}
 📅 *Fecha:* ${fechaFormato}
 ⏰ *Hora concentración:* ${s.horaConcentracion || 'No especificada'}
 🏁 *Hora partido:* ${s.hora}
 🏟️ *Sede:* ${s.sede || 'No especificada'}
 ${s.rival ? `🆚 *Rival:* ${s.rival}` : ''}`.trim();
 
-      messages.push(message);
+      messages.push({
+        id: s.id,
+        message
+      });
     }
 
     // Enviar cada mensaje al grupo
-    for (const msg of messages) {
-      await waClient.sendMessage(groupId, msg);
+    for (const item of messages) {
+      await waClient.sendMessage(groupId, item.message);
+      if (item.id) notifiedIds.push(item.id);
     }
 
-    res.json({ success: true, sentMessages: messages.length });
+    if (notifiedIds.length > 0) {
+      const data = readSenalamentos();
+      const idsSet = new Set(notifiedIds);
+      const updated = data.map(s => {
+        if (!idsSet.has(s.id)) return s;
+        return {
+          ...s,
+          notificado: true,
+          notificadoEn: notifiedAt
+        };
+      });
+      writeSenalamentos(updated);
+    }
+
+    res.json({ success: true, sentMessages: messages.length, notifiedIds, notifiedAt });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

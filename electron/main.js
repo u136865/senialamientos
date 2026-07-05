@@ -10,7 +10,7 @@ let mainWindow = null;
 let serverProcess = null;
 let serverPort = BASE_PORT;
 
-app.setName('Senialamientos');
+app.setName('ConvocaFutbol');
 
 function writeDesktopLog(message) {
   try {
@@ -80,7 +80,7 @@ async function resolvePort(preferredPort) {
 async function startBackend() {
   const appBasePath = getAppBasePath();
   const backendEntry = path.join(appBasePath, 'server.js');
-  const frontendDist = path.join(appBasePath, 'Whatsapp_Multicast', 'dist', 'whatsapp-multicast');
+  const frontendDist = path.join(appBasePath, 'Whatsapp_Multicast', 'dist', 'convoca-futbol-web');
   serverPort = await resolvePort(BASE_PORT);
 
   if (!fs.existsSync(backendEntry)) {

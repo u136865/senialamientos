@@ -5,7 +5,11 @@ import { Semana, Senalamento } from '../../models/senalamento.model';
 import { SenalamentosService } from '../../services/senalamentos.service';
 import { SemanaPickerDialogComponent } from './semana-picker-dialog/semana-picker-dialog.component';
 import { SenalamantoDialogComponent } from './senalamento-dialog/senalamento-dialog.component';
-import { forkJoin } from 'rxjs';
+import { forkJoin, firstValueFrom } from 'rxjs';
+import {
+  RenotifyConfirmDialogComponent,
+  RenotifyDecision
+} from './renotify-confirm-dialog/renotify-confirm-dialog.component';
 
 @Component({
   selector: 'app-senalamentos',
@@ -189,9 +193,19 @@ export class SenalamentosComponent implements OnInit {
       return;
     }
 
+    this.notifySemanaFlow(semana, senalamentos);
+  }
+
+  private async notifySemanaFlow(semana: Semana, senalamentos: Senalamento[]): Promise<void> {
+    const filtered = await this.filterRenotifySemana(senalamentos, semana.label);
+    if (filtered.length === 0) {
+      this.notify('Notificación cancelada');
+      return;
+    }
+
     // Agrupar por grupo de WhatsApp
     const porGrupo: Record<string, Senalamento[]> = {};
-    senalamentos.forEach(s => {
+    filtered.forEach(s => {
       const groupId = s.categoria?.grupoWhatsapp?.id;
       if (groupId) {
         if (!porGrupo[groupId]) porGrupo[groupId] = [];
@@ -208,13 +222,18 @@ export class SenalamentosComponent implements OnInit {
     let enviados = 0;
     let errores = 0;
     let pendientes = Object.keys(porGrupo).length;
+    const notifiedIds = new Set<string>();
+    let notifiedAt: string | undefined;
 
     Object.entries(porGrupo).forEach(([groupId, senalamientos]) => {
       this.service.notifySenalamentos(groupId, senalamientos).subscribe({
         next: (res) => {
           enviados += res.sentMessages;
+          (res.notifiedIds || []).forEach(id => notifiedIds.add(id));
+          if (res.notifiedAt) notifiedAt = res.notifiedAt;
           pendientes--;
           if (pendientes === 0) {
+            this.applyNotifiedStatus(semana.id, Array.from(notifiedIds), notifiedAt);
             this.notify(`${enviados} notificación(es) enviada(s)${errores > 0 ? ` (${errores} error/es)` : ''}`);
           }
         },
@@ -229,16 +248,127 @@ export class SenalamentosComponent implements OnInit {
     });
   }
 
-  notifySenalamento(senalamiento: Senalamento, event: Event): void {
+  async notifySenalamento(senalamiento: Senalamento, event: Event): Promise<void> {
     event.stopPropagation();
     if (!senalamiento.categoria?.grupoWhatsapp) {
       this.notify('Este señalamiento no tiene grupo WhatsApp asignado', true);
       return;
     }
 
+    if (senalamiento.notificado) {
+      const decision = await this.askRenotify(senalamiento, 'Notificación manual', false);
+      if (decision !== 'yes') return;
+    }
+
     this.service.notifySenalamentos(senalamiento.categoria.grupoWhatsapp.id, [senalamiento]).subscribe({
-      next: () => this.notify('Notificación enviada'),
+      next: (res) => {
+        const ids = (res.notifiedIds && res.notifiedIds.length > 0)
+          ? res.notifiedIds
+          : [senalamiento.id];
+        this.applyNotifiedStatusById(ids, res.notifiedAt);
+        this.notify('Notificación enviada');
+      },
       error: (err) => this.notify(err.error?.error || 'Error al enviar notificación', true)
+    });
+  }
+
+  private async filterRenotifySemana(list: Senalamento[], semanaLabel: string): Promise<Senalamento[]> {
+    const selected: Senalamento[] = [];
+    let yesToAll = false;
+    let noToAll = false;
+
+    for (const s of list) {
+      if (!s.categoria?.grupoWhatsapp) continue;
+      if (!s.notificado || yesToAll) {
+        selected.push(s);
+        continue;
+      }
+      if (noToAll) {
+        continue;
+      }
+
+      const decision = await this.askRenotify(s, semanaLabel, true);
+      if (decision === 'all') {
+        yesToAll = true;
+        selected.push(s);
+      }
+      if (decision === 'none') {
+        noToAll = true;
+        continue;
+      }
+      if (decision === 'yes') {
+        selected.push(s);
+      }
+      if (decision === 'no') {
+        continue;
+      }
+    }
+
+    return selected;
+  }
+
+  private askRenotify(s: Senalamento, semanaLabel: string, allowAll: boolean): Promise<RenotifyDecision> {
+    const categoria = [s.categoria?.categoria, s.categoria?.division, s.categoria?.genero]
+      .map(v => (v || '').trim())
+      .filter(Boolean)
+      .join(' ') || 'Sin categoría';
+    const ultimaNotificacion = s.notificadoEn
+      ? ` · Ultima notificacion: ${this.formatDateTime(s.notificadoEn)}`
+      : '';
+
+    return firstValueFrom(
+      this.dialog.open(RenotifyConfirmDialogComponent, {
+        width: '460px',
+        disableClose: true,
+        data: {
+          title: 'Señalamiento ya notificado',
+          message: 'Este señalamiento ya fue notificado. ¿Quieres volver a enviarlo?',
+          detail: `${semanaLabel} · ${this.formatDate(s.fecha)} · ${s.hora} · ${categoria}${ultimaNotificacion}`,
+          allowAll
+        }
+      }).afterClosed()
+    ).then(result => result || 'no');
+  }
+
+  private formatDateTime(iso: string): string {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    const time = d.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    return `${date} ${time}`;
+  }
+
+  private applyNotifiedStatus(semanaId: string, ids: string[], notifiedAt?: string): void {
+    if (!ids.length) return;
+    const set = new Set(ids);
+    this.senalamentosBySemana[semanaId] = (this.senalamentosBySemana[semanaId] || []).map(s => {
+      if (!set.has(s.id)) return s;
+      return {
+        ...s,
+        notificado: true,
+        notificadoEn: notifiedAt || new Date().toISOString()
+      };
+    });
+  }
+
+  private applyNotifiedStatusById(ids: string[], notifiedAt?: string): void {
+    if (!ids.length) return;
+    const set = new Set(ids);
+    Object.keys(this.senalamentosBySemana).forEach(semanaId => {
+      this.senalamentosBySemana[semanaId] = (this.senalamentosBySemana[semanaId] || []).map(s => {
+        if (!set.has(s.id)) return s;
+        return {
+          ...s,
+          notificado: true,
+          notificadoEn: notifiedAt || new Date().toISOString()
+        };
+      });
     });
   }
 

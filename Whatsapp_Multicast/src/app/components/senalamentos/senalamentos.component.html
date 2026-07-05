@@ -79,6 +79,7 @@
               <th>Sede</th>
               <th>Rival</th>
               <th>Categoría</th>
+              <th>Notificado</th>
               <th style="text-align:right">Acciones</th>
             </tr>
           </thead>
@@ -120,6 +121,18 @@
                   <span *ngIf="s.categoria.division"> {{ s.categoria.division }}</span>
                   <span *ngIf="s.categoria.genero"> {{ s.categoria.genero }}</span>
                 </div>
+              </td>
+              <td>
+                <div *ngIf="s.notificado; else noNotificado" class="status-chip ok" matTooltip="Ya fue notificado por WhatsApp">
+                  <mat-icon>check_circle</mat-icon>
+                  <span>Enviado</span>
+                </div>
+                <ng-template #noNotificado>
+                  <div class="status-chip pending" matTooltip="Aún no se ha enviado notificación">
+                    <mat-icon>schedule</mat-icon>
+                    <span>Pendiente</span>
+                  </div>
+                </ng-template>
               </td>
               <td style="text-align:right">
                 <button mat-icon-button color="accent" 
@@ -217,6 +230,7 @@
                   <th>Sede</th>
                   <th>Rival</th>
                   <th>Categoría</th>
+                  <th>Notificado</th>
                   <th style="text-align:right">Acciones</th>
                 </tr>
               </thead>
@@ -258,6 +272,18 @@
                       <span *ngIf="s.categoria.division"> {{ s.categoria.division }}</span>
                       <span *ngIf="s.categoria.genero"> {{ s.categoria.genero }}</span>
                     </div>
+                  </td>
+                  <td>
+                    <div *ngIf="s.notificado; else noNotificadoPasado" class="status-chip ok" matTooltip="Ya fue notificado por WhatsApp">
+                      <mat-icon>check_circle</mat-icon>
+                      <span>Enviado</span>
+                    </div>
+                    <ng-template #noNotificadoPasado>
+                      <div class="status-chip pending" matTooltip="Aún no se ha enviado notificación">
+                        <mat-icon>schedule</mat-icon>
+                        <span>Pendiente</span>
+                      </div>
+                    </ng-template>
                   </td>
                   <td style="text-align:right">
                     <button mat-icon-button color="primary" (click)="openSenalamentoDialog(semana, s)"

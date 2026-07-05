@@ -201,6 +201,32 @@
   span { font-size: 0.9rem; }
 }
 
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+
+  &.ok {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  &.pending {
+    background: #fff8e1;
+    color: #f57f17;
+  }
+}
+
 .no-data { color: #bdbdbd; font-style: italic; }
 
 .add-senalamento-bar {

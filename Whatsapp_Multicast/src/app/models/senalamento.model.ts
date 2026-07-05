@@ -16,4 +16,6 @@ export interface Senalamento {
   sede: string;
   categoria: Category | null;
   rival: string;              // Nombre del rival/equipo
+  notificado?: boolean;
+  notificadoEn?: string | null;
 }

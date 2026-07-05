@@ -1,7 +1,7 @@
 {
-  "name": "whatsapp_multicast",
+  "name": "convoca-futbol-desktop",
   "version": "1.0.1",
-  "description": "WhatsApp Multicast - Backend Node.js",
+  "description": "ConvocaFutbol - Gestion de senalamientos y notificaciones por WhatsApp",
   "license": "ISC",
   "author": "",
   "type": "commonjs",
@@ -30,8 +30,8 @@
     "electron-builder": "^26.0.12"
   },
   "build": {
-    "appId": "com.u136865.senialamientos",
-    "productName": "Senialamientos",
+    "appId": "com.u136865.convocafutbol",
+    "productName": "ConvocaFutbol",
     "asar": false,
     "directories": {
       "output": "dist"
@@ -41,7 +41,7 @@
       "server.js",
       "package.json",
       "node_modules/**/*",
-      "Whatsapp_Multicast/dist/whatsapp-multicast/**/*"
+      "Whatsapp_Multicast/dist/convoca-futbol-web/**/*"
     ],
     "extraMetadata": {
       "main": "electron/main.js"

@@ -1,6 +1,6 @@
-# Senialamientos
+# ConvocaFutbol
 
-Aplicacion de escritorio para gestion de categorias, semanas y senalamientos, con integracion a WhatsApp Web para notificaciones de partidos.
+Aplicacion de escritorio ConvocaFutbol para gestion de categorias, semanas y senalamientos, con integracion a WhatsApp Web para notificaciones de partidos.
 
 El proyecto empaqueta en un instalador .exe con Electron Builder, por lo que el usuario final no necesita tener Node ni Angular instalados.
 
@@ -61,7 +61,7 @@ npm run dist:win
 
 Salida esperada (en tu maquina local):
 
-- Instalador: [dist/Senialamientos-Setup-1.0.0.exe](dist/Senialamientos-Setup-1.0.0.exe)
+- Instalador: [dist/ConvocaFutbol-Setup-1.0.0.exe](dist/ConvocaFutbol-Setup-1.0.0.exe)
 - App desempaquetada: [dist/win-unpacked](dist/win-unpacked)
 
 Nota: esos archivos no se suben al codigo fuente porque [dist](dist) esta ignorado por Git.
